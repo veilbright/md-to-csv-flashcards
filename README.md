@@ -25,4 +25,11 @@ Anything else (after the first front) will go on the back of each card
 
 - New List: This list will not have bullet points, and bolds any text before the colon
 - Formatting: The same rules apply as the unordered list
+
+# Markdown tables will also be converted to HTML tables
+
+| Formatting                                                                      | Style                                          |
+|---------------------------------------------------------------------------------|------------------------------------------------|
+| The only types of tables supported are those with a header, formatted like this | Some basic CSS styling is applied to the table |
+| The fancy spacing isn't required                                                | Only a border and some padding                 |
 ```

@@ -14,7 +14,9 @@ class Linetype(Enum):
     NONE_UL = 2
     OL = 3
     P = 4
-    UL = 5
+    TABLE = 5
+    TR = 6
+    UL = 7
 
 
 class Card:
@@ -33,6 +35,8 @@ class Card:
             return "</ul>"
         elif line_type == Linetype.OL:
             return "</ol>"
+        elif line_type == Linetype.TABLE or line_type == Linetype.TR:
+            return "</table>"
         return ""
 
     def __get_notetype_str(self) -> str:
@@ -57,7 +61,7 @@ class Card:
 
         for line in back_lines:
             # None-styled unordered list
-            none_ul_start = re.search(r"^-\s.*:", line)
+            none_ul_start = re.match(r"-\s.*:", line)
             if none_ul_start:
                 if line_type != Linetype.NONE_UL:
                     back_list.append(self.__get_line_type_close(line_type))
@@ -67,22 +71,51 @@ class Card:
                     f"<li><strong>{self.__sanitize_str(none_ul_start.group(0)[1:].strip())}</strong>"
                 )
                 back_list.append(
-                    f"{self.__sanitize_str(line[none_ul_start.end():].strip())}</li>"
+                    f" {self.__sanitize_str(line[none_ul_start.end():].strip())}</li>"
                 )
             # Unordered list
-            elif re.search(r"^-\s", line):
+            elif re.match(r"-\s", line):
                 if line_type != Linetype.UL:
                     back_list.append(self.__get_line_type_close(line_type))
                     back_list.append("<ul>")
                 line_type = Linetype.UL
                 back_list.append(f"<li>{self.__sanitize_str(line[1:].strip())}</li>")
             # Ordered list
-            elif re.search(r"^\d\.", line):
+            elif re.match(r"\d\.\s", line):
                 if line_type != Linetype.OL:
                     back_list.append(self.__get_line_type_close(line_type))
                     back_list.append("<ol>")
                 line_type = Linetype.OL
                 back_list.append(f"<li>{self.__sanitize_str(line[2:].strip())}</li>")
+            # Table row
+            elif line_type == Linetype.TR and re.match(r"\|.*\|\s*$", line):
+                table_data = re.match(r"[^|]*\|", line[1:])
+                offset = 1
+                back_list.append("<tr>")
+                while table_data:
+                    back_list.append(
+                        f'<td style=""border:1px solid;padding:0 0.5em;"">{table_data.group(0)[0:-1].strip()}</td>'
+                    )
+                    offset += len(table_data.group(0))
+                    table_data = re.match(r"[^|]*\|", line[offset:])
+                back_list.append("</tr>")
+            # Table header/row separator
+            elif line_type == Linetype.TABLE and re.match(r"\|.*\|\s*$", line):
+                line_type = Linetype.TR
+            # Table header
+            elif re.match(r"\|.*\|\s*$", line):
+                back_list.append(self.__get_line_type_close(line_type))
+                line_type = Linetype.TABLE
+                table_header = re.match(r"[^|]*\|", line[1:])
+                offset = 1
+                back_list.append('<table style=""border:1px solid;""><tr>')
+                while table_header:
+                    back_list.append(
+                        f'<th style=""border:1px solid;padding:0 0.5em;"">{table_header.group(0)[0:-1].strip()}</th>'
+                    )
+                    offset += len(table_header.group(0))
+                    table_header = re.match(r"[^|]*\|", line[offset:])
+                back_list.append("</tr>")
             # Paragraph
             else:
                 if line_type != Linetype.P:
